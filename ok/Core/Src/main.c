@@ -191,19 +191,23 @@ int main(void)
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
 
-    // Process ADC data when ready
-    if (adc_complete) {
+    // Update buffer when ADC completes AND SPI is idle
+    if (adc_complete && spi_tx_done) {
       adc_complete = 0;
-      pack_u16_to_bytes(adc_buffer, tx_buffer, BUFFER_SIZE);  // Pack new data
-      data_ready = 1;  // Mark data as ready
+      spi_tx_done = 0;  // Will restart below
+      pack_u16_to_bytes(adc_buffer, tx_buffer, BUFFER_SIZE);  // Safe: SPI idle
+      HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
       start_adc_capture();  // Restart ADC for next capture
     }
-
-    // Restart SPI only when TX done AND new data is ready
-    if (spi_tx_done && data_ready) {
+    // If SPI done but ADC not ready, restart SPI with old data (keep responding to Pi4)
+    else if (spi_tx_done) {
       spi_tx_done = 0;
-      data_ready = 0;  // Clear data ready flag
       HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
+    }
+    // If ADC done but SPI still busy, just restart ADC (data will be picked up next cycle)
+    else if (adc_complete) {
+      adc_complete = 0;
+      start_adc_capture();
     }
   }
 }
