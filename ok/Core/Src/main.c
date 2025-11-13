@@ -98,17 +98,17 @@ int main(void)
   HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 1 toggle = DMA OK
   HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
-  MX_ADC1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 2 toggles = ADC OK
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
-
-  // Try TIM1 before SPI to test if SPI is the problem
-  MX_TIM1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 3 toggles = TIM OK
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
-
+  // Try SPI before ADC
   MX_SPI1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 4 toggles = SPI OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 2 toggles = SPI OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
+
+  MX_ADC1_Init();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 3 toggles = ADC OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
+
+  MX_TIM1_Init();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 4 toggles = TIM OK
   HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   // TIM start
