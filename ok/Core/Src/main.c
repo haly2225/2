@@ -95,22 +95,33 @@ int main(void)
 
   // Initialize peripherals with debug blinks
   MX_DMA_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(50); // 1 blink = DMA OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 1 toggle = DMA OK
 
   MX_ADC1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(50); // 2 blinks = ADC OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 2 toggles = ADC OK
 
   MX_SPI1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(50); // 3 blinks = SPI OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 3 toggles = SPI OK
 
   MX_TIM1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(50); // 4 blinks = TIM OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 4 toggles = TIM OK
 
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  HAL_TIM_Base_Start(&htim1);
+  // TIM start
+  if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK) {
+    Error_Handler();
+  }
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 5 toggles = TIM PWM started
+
+  if (HAL_TIM_Base_Start(&htim1) != HAL_OK) {
+    Error_Handler();
+  }
   __HAL_TIM_MOE_ENABLE(&htim1);
 
-  HAL_ADCEx_Calibration_Start(&hadc1);
+  // ADC calibration
+  if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
+    Error_Handler();
+  }
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 6 toggles = ADC calibrated
 
   // Initialize buffer with default data
   for (int i = 0; i < BUFFER_SIZE; i++) {
@@ -119,10 +130,14 @@ int main(void)
   pack_u16_to_bytes(adc_buffer, tx_buffer, BUFFER_SIZE);
 
   // Start SPI DMA (slave - will wait for master clock)
-  HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
+  if (HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES) != HAL_OK) {
+    Error_Handler();
+  }
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 7 toggles = SPI DMA started
 
   // Start ADC
   start_adc_capture();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 8 toggles = ADC DMA started
 
   uint32_t last_heartbeat = 0;
   uint32_t led_period = 1000; // Start with 1s period (not working yet)
