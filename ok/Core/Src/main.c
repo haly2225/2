@@ -2,7 +2,7 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : STM32F103 Oscilloscope
+  * @brief          : STM32F103 Oscilloscope - MINIMAL TEST
   ******************************************************************************
   */
 /* USER CODE END Header */
@@ -24,13 +24,9 @@ uint8_t  tx_buffer[TX_BYTES] __attribute__((aligned(4)));
 uint8_t  rx_dummy[TX_BYTES] __attribute__((aligned(4)));
 
 volatile uint8_t adc_complete = 0;
-volatile uint8_t spi_busy = 0;
 volatile uint8_t spi_tx_done = 0;
-volatile uint8_t nss_triggered = 0;
 volatile uint32_t adc_count = 0;
 volatile uint32_t spi_count = 0;
-volatile uint32_t nss_count = 0;
-volatile uint32_t err_count = 0;
 
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
@@ -72,23 +68,14 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
-  spi_busy = 0;
   spi_tx_done = 1;
   spi_count++;
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
 {
-  spi_busy = 0;
-  err_count++;
-}
-
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  if (GPIO_Pin == GPIO_PIN_4) {
-    nss_triggered = 1;
-    nss_count++;
-  }
+  // On error, set flag to retry
+  spi_tx_done = 1;
 }
 
 int main(void)
@@ -97,6 +84,14 @@ int main(void)
   SystemClock_Config();
 
   MX_GPIO_Init();
+
+  // LED fast blink on startup (shows code is running)
+  for (int i = 0; i < 6; i++) {
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    HAL_Delay(100);
+  }
+
+  // Initialize peripherals
   MX_DMA_Init();
   MX_ADC1_Init();
   MX_SPI1_Init();
@@ -108,31 +103,33 @@ int main(void)
 
   HAL_ADCEx_Calibration_Start(&hadc1);
 
-  for (int i = 0; i < 3; i++) {
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    HAL_Delay(200);
-  }
-
+  // Initialize buffer with default data
   for (int i = 0; i < BUFFER_SIZE; i++) {
     adc_buffer[i] = 2048;
   }
   pack_u16_to_bytes(adc_buffer, tx_buffer, BUFFER_SIZE);
 
+  // Start SPI DMA (slave - will wait for master clock)
   HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
 
-  uint32_t last_heartbeat = 0;
+  // Start ADC
   start_adc_capture();
+
+  uint32_t last_heartbeat = 0;
 
   while (1)
   {
-    if (HAL_GetTick() - last_heartbeat > 500) {
-      last_heartbeat = HAL_GetTick();
+    // Heartbeat LED - MUST blink every 500ms
+    uint32_t now = HAL_GetTick();
+    if (now - last_heartbeat > 500) {
+      last_heartbeat = now;
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
 
-    // Restart SPI when TX done (always ready to send)
+    // Restart SPI when TX done
     if (spi_tx_done) {
       spi_tx_done = 0;
+      // Important: Pi4 must be reading, otherwise this will queue up
       HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
     }
 
@@ -290,7 +287,11 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   __disable_irq();
-  while (1) {}
+  // Flash LED rapidly to indicate error
+  while (1) {
+    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+    for (volatile int i = 0; i < 100000; i++);
+  }
 }
 
 #ifdef USE_FULL_ASSERT
