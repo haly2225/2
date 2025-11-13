@@ -10,7 +10,7 @@
 #include <string.h>
 
 #define BUFFER_SIZE          256
-#define TX_BYTES             (BUFFER_SIZE * 2 + 4 + 1)  // +1 for dummy byte at start
+#define TX_BYTES             (BUFFER_SIZE * 2 + 4 + 2)  // +2 dummy bytes for SPI slave timing
 
 ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
@@ -40,7 +40,8 @@ void pack_u16_to_bytes(uint16_t *src, uint8_t *dst, uint16_t count)
 {
   static uint16_t frame_counter = 0;
 
-  // Dummy byte for SPI slave timing (first byte may be lost)
+  // 2 dummy bytes for SPI slave timing compensation
+  *dst++ = 0x00;
   *dst++ = 0x00;
 
   // Marker

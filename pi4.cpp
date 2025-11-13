@@ -34,7 +34,7 @@
 constexpr uint8_t  MARKER_START = 0xAA;
 constexpr uint8_t  MARKER_HEADER = 0x55;
 constexpr uint16_t BUFFER_SIZE = 256;
-constexpr uint16_t PACKET_SIZE = 1 + 4 + BUFFER_SIZE * 2;  // 1 dummy + 4 header + 512 data = 517
+constexpr uint16_t PACKET_SIZE = 2 + 4 + BUFFER_SIZE * 2;  // 2 dummy + 4 header + 512 data = 518
 constexpr float    SAMPLE_RATE = 250000.0f;
 constexpr float    VCC = 3.3f;
 constexpr uint16_t ADC_MAX = 4095;
@@ -374,11 +374,11 @@ private:
     }
 
     bool parse_packet(const std::vector<uint8_t>& buf) {
-        // Find marker (skip first dummy byte: buf[i]=dummy, buf[i+1]=0xAA, buf[i+2]=0x55)
+        // Find marker (skip 2 dummy bytes: buf[i]=dummy, buf[i+1]=dummy, buf[i+2]=0xAA, buf[i+3]=0x55)
         int marker_pos = -1;
         for (size_t i = 0; i <= buf.size() - PACKET_SIZE; i++) {
-            if (buf[i+1] == MARKER_START && buf[i+2] == MARKER_HEADER) {
-                marker_pos = i + 1;  // Position of 0xAA marker
+            if (buf[i+2] == MARKER_START && buf[i+3] == MARKER_HEADER) {
+                marker_pos = i + 2;  // Position of 0xAA marker
                 break;
             }
         }
