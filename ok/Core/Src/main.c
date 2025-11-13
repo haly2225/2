@@ -85,11 +85,8 @@ int main(void)
 
   MX_GPIO_Init();
 
-  // LED fast blink on startup (shows code is running)
-  for (int i = 0; i < 6; i++) {
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    HAL_Delay(100);
-  }
+  // LED OFF initially (will start blinking when running)
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
 
   // Initialize peripherals
   MX_DMA_Init();
@@ -116,12 +113,23 @@ int main(void)
   start_adc_capture();
 
   uint32_t last_heartbeat = 0;
+  uint32_t led_period = 1000; // Start with 1s period (not working yet)
 
   while (1)
   {
-    // Heartbeat LED - MUST blink every 500ms
     uint32_t now = HAL_GetTick();
-    if (now - last_heartbeat > 500) {
+
+    // Update LED period based on status
+    if (spi_count > 10 && adc_count > 5) {
+      // SPI working: 5 blinks/sec = 200ms period
+      led_period = 200;
+    } else {
+      // Not working yet: 1 blink/sec = 1000ms period
+      led_period = 1000;
+    }
+
+    // Toggle LED
+    if (now - last_heartbeat > led_period / 2) {
       last_heartbeat = now;
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
@@ -129,7 +137,6 @@ int main(void)
     // Restart SPI when TX done
     if (spi_tx_done) {
       spi_tx_done = 0;
-      // Important: Pi4 must be reading, otherwise this will queue up
       HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
     }
 
@@ -287,11 +294,9 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   __disable_irq();
-  // Flash LED rapidly to indicate error
-  while (1) {
-    HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-    for (volatile int i = 0; i < 100000; i++);
-  }
+  // LED OFF = fatal error
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+  while (1) {}
 }
 
 #ifdef USE_FULL_ASSERT
