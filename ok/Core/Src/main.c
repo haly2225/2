@@ -130,15 +130,14 @@ int main(void)
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
 
-    // Restart SPI only when TX done AND new ADC data ready
-    if (spi_tx_done && adc_complete) {
+    // Restart SPI when TX done (always ready to send)
+    if (spi_tx_done) {
       spi_tx_done = 0;
-      adc_complete = 0;
       HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
-      start_adc_capture();
     }
-    // If only ADC done but SPI still busy, just restart ADC
-    else if (adc_complete) {
+
+    // Restart ADC when conversion complete
+    if (adc_complete) {
       adc_complete = 0;
       start_adc_capture();
     }
