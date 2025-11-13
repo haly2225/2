@@ -374,11 +374,11 @@ private:
     }
 
     bool parse_packet(const std::vector<uint8_t>& buf) {
-        // Find marker (skip 2 dummy bytes: buf[i]=dummy, buf[i+1]=dummy, buf[i+2]=0xAA, buf[i+3]=0x55)
+        // Find marker ANYWHERE in buffer (not fixed offset!)
         int marker_pos = -1;
-        for (size_t i = 0; i <= buf.size() - PACKET_SIZE; i++) {
-            if (buf[i+2] == MARKER_START && buf[i+3] == MARKER_HEADER) {
-                marker_pos = i + 2;  // Position of 0xAA marker
+        for (size_t i = 0; i <= buf.size() - 4; i++) {
+            if (buf[i] == MARKER_START && buf[i+1] == MARKER_HEADER) {
+                marker_pos = i;  // Position of 0xAA marker
                 break;
             }
         }
