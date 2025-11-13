@@ -1,0 +1,35 @@
+# Compiled binary
+scope
+
+# Qt MOC files
+*.moc
+moc_*.cpp
+moc_*.h
+
+# Object files
+*.o
+*.obj
+
+# Qt temp files
+ui_*.h
+qrc_*.cpp
+
+# Build directories
+build/
+debug/
+release/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Core dumps
+core
+core.*
+
+# System files
+.DS_Store
+Thumbs.db
