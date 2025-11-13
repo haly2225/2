@@ -25,6 +25,7 @@ uint8_t  rx_dummy[TX_BYTES] __attribute__((aligned(4)));
 
 volatile uint8_t adc_complete = 0;
 volatile uint8_t spi_tx_done = 0;
+volatile uint8_t data_ready = 0;  // Flag: new data packed and ready to send
 volatile uint32_t adc_count = 0;
 volatile uint32_t spi_count = 0;
 
@@ -190,16 +191,19 @@ int main(void)
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
 
-    // Restart SPI when TX done
-    if (spi_tx_done) {
-      spi_tx_done = 0;
-      HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
-    }
-
-    // Restart ADC when conversion complete
+    // Process ADC data when ready
     if (adc_complete) {
       adc_complete = 0;
-      start_adc_capture();
+      pack_u16_to_bytes(adc_buffer, tx_buffer, BUFFER_SIZE);  // Pack new data
+      data_ready = 1;  // Mark data as ready
+      start_adc_capture();  // Restart ADC for next capture
+    }
+
+    // Restart SPI only when TX done AND new data is ready
+    if (spi_tx_done && data_ready) {
+      spi_tx_done = 0;
+      data_ready = 0;  // Clear data ready flag
+      HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
     }
   }
 }
