@@ -151,21 +151,21 @@ int main(void)
   }
   pack_u16_to_bytes(adc_buffer, tx_buffer, BUFFER_SIZE);
 
-  // TEMP: Skip SPI and ADC DMA start to test init only
-  // if (HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES) != HAL_OK) {
-  //   // Blink fast 10 times on SPI DMA error
-  //   for (int i = 0; i < 10; i++) {
-  //     HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
-  //     HAL_Delay(50);
-  //   }
-  //   Error_Handler();
-  // }
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 7 toggles = Skipped SPI DMA
+  // Start SPI DMA (slave - will wait for master clock)
+  if (HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES) != HAL_OK) {
+    // Blink fast 10 times on SPI DMA error
+    for (int i = 0; i < 10; i++) {
+      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      HAL_Delay(50);
+    }
+    Error_Handler();
+  }
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 7 toggles = SPI DMA started
   HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   // Start ADC
-  // start_adc_capture();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 8 toggles = Skipped ADC DMA
+  start_adc_capture();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 8 toggles = ADC DMA started
   HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   uint32_t last_heartbeat = 0;
@@ -190,16 +190,17 @@ int main(void)
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
 
-    // TEMP: Skip DMA restart for init test
-    // if (spi_tx_done) {
-    //   spi_tx_done = 0;
-    //   HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
-    // }
+    // Restart SPI when TX done
+    if (spi_tx_done) {
+      spi_tx_done = 0;
+      HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
+    }
 
-    // if (adc_complete) {
-    //   adc_complete = 0;
-    //   start_adc_capture();
-    // }
+    // Restart ADC when conversion complete
+    if (adc_complete) {
+      adc_complete = 0;
+      start_adc_capture();
+    }
   }
 }
 
