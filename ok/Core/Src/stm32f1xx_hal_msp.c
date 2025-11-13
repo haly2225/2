@@ -190,7 +190,9 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
 
     /* SPI1 DMA Init */
     /* SPI1_RX Init */
+    // Set Instance first, then DeInit to clear any previous state
     hdma_spi1_rx.Instance = DMA1_Channel2;
+    HAL_DMA_DeInit(&hdma_spi1_rx);
     hdma_spi1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
     hdma_spi1_rx.Init.PeriphInc = DMA_PINC_DISABLE;
     hdma_spi1_rx.Init.MemInc = DMA_MINC_ENABLE;
@@ -206,7 +208,9 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* hspi)
     __HAL_LINKDMA(hspi,hdmarx,hdma_spi1_rx);
 
     /* SPI1_TX Init */
+    // Set Instance first, then DeInit to clear any previous state
     hdma_spi1_tx.Instance = DMA1_Channel3;
+    HAL_DMA_DeInit(&hdma_spi1_tx);
     hdma_spi1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
     hdma_spi1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
     hdma_spi1_tx.Init.MemInc = DMA_MINC_ENABLE;
