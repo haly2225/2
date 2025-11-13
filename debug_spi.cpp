@@ -73,32 +73,44 @@ int main() {
 
         frame_count++;
 
-        // Check marker
-        if (rx_buf[0] == 0xAA && rx_buf[1] == 0x55) {
-            uint16_t frame_id = (rx_buf[2] << 8) | rx_buf[3];
+        // Find marker in buffer (not at fixed position!)
+        int marker_pos = -1;
+        for (int i = 0; i <= PACKET_SIZE - 4; i++) {
+            if (rx_buf[i] == 0xAA && rx_buf[i+1] == 0x55) {
+                marker_pos = i;
+                break;
+            }
+        }
+
+        if (marker_pos >= 0) {
+            uint16_t frame_id = (rx_buf[marker_pos + 2] << 8) | rx_buf[marker_pos + 3];
             marker_found++;
 
             cout << "\n=== Frame #" << dec << frame_count
-                 << " | STM32 Frame ID: " << frame_id << " ===" << endl;
+                 << " | STM32 Frame ID: " << frame_id
+                 << " | Marker at offset: " << marker_pos << " ===" << endl;
 
             // Show first 64 bytes
             cout << "First 64 bytes:" << endl;
             hexDump(rx_buf, 64);
 
-            // Parse first 4 ADC samples
+            // Parse first 4 ADC samples (after 4-byte header)
             cout << "\nFirst 4 samples (16-bit ADC):" << endl;
             for (int i = 0; i < 4; i++) {
-                uint16_t val = (rx_buf[4 + i*2] << 8) | rx_buf[4 + i*2 + 1];
-                float voltage = val * 3.3f / 4096.0f;
-                cout << "  Sample[" << i << "]: 0x" << hex << val
-                     << dec << " = " << voltage << "V" << endl;
+                int offset = marker_pos + 4 + i*2;
+                if (offset + 1 < PACKET_SIZE) {
+                    uint16_t val = (rx_buf[offset] << 8) | rx_buf[offset + 1];
+                    float voltage = val * 3.3f / 4096.0f;
+                    cout << "  Sample[" << i << "]: 0x" << hex << val
+                         << dec << " = " << voltage << "V" << endl;
+                }
             }
 
         } else {
             marker_missing++;
             cout << "\n!!! Frame #" << dec << frame_count
                  << " - MARKER NOT FOUND !!!" << endl;
-            cout << "First 16 bytes (expected 0xAA 0x55):" << endl;
+            cout << "First 16 bytes (expected 0xAA 0x55 somewhere):" << endl;
             hexDump(rx_buf, 16);
         }
 
