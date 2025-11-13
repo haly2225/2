@@ -85,14 +85,26 @@ int main(void)
 
   MX_GPIO_Init();
 
-  // LED OFF initially (will start blinking when running)
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+  // Startup blink: 6 times fast
+  for (int i = 0; i < 6; i++) {
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET);
+    HAL_Delay(100);
+    HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);
+    HAL_Delay(100);
+  }
 
-  // Initialize peripherals
+  // Initialize peripherals with debug blinks
   MX_DMA_Init();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(50); // 1 blink = DMA OK
+
   MX_ADC1_Init();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(50); // 2 blinks = ADC OK
+
   MX_SPI1_Init();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(50); // 3 blinks = SPI OK
+
   MX_TIM1_Init();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(50); // 4 blinks = TIM OK
 
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   HAL_TIM_Base_Start(&htim1);
