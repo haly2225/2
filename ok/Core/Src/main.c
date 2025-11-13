@@ -95,33 +95,55 @@ int main(void)
 
   // Initialize peripherals with debug blinks
   MX_DMA_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 1 toggle = DMA OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 1 toggle = DMA OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   MX_ADC1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 2 toggles = ADC OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 2 toggles = ADC OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
+
+  // Try TIM1 before SPI to test if SPI is the problem
+  MX_TIM1_Init();
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 3 toggles = TIM OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   MX_SPI1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 3 toggles = SPI OK
-
-  MX_TIM1_Init();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 4 toggles = TIM OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 4 toggles = SPI OK
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   // TIM start
   if (HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1) != HAL_OK) {
+    // Blink fast 10 times on TIM PWM error
+    for (int i = 0; i < 10; i++) {
+      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      HAL_Delay(50);
+    }
     Error_Handler();
   }
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 5 toggles = TIM PWM started
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 5 toggles = TIM PWM started
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   if (HAL_TIM_Base_Start(&htim1) != HAL_OK) {
+    // Blink fast 10 times on TIM Base error
+    for (int i = 0; i < 10; i++) {
+      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      HAL_Delay(50);
+    }
     Error_Handler();
   }
   __HAL_TIM_MOE_ENABLE(&htim1);
 
   // ADC calibration
   if (HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK) {
+    // Blink fast 10 times on ADC calibration error
+    for (int i = 0; i < 10; i++) {
+      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      HAL_Delay(50);
+    }
     Error_Handler();
   }
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 6 toggles = ADC calibrated
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 6 toggles = ADC calibrated
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   // Initialize buffer with default data
   for (int i = 0; i < BUFFER_SIZE; i++) {
@@ -131,13 +153,20 @@ int main(void)
 
   // Start SPI DMA (slave - will wait for master clock)
   if (HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES) != HAL_OK) {
+    // Blink fast 10 times on SPI DMA error
+    for (int i = 0; i < 10; i++) {
+      HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
+      HAL_Delay(50);
+    }
     Error_Handler();
   }
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 7 toggles = SPI DMA started
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 7 toggles = SPI DMA started
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   // Start ADC
   start_adc_capture();
-  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(200); // 8 toggles = ADC DMA started
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300); // 8 toggles = ADC DMA started
+  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13); HAL_Delay(300);
 
   uint32_t last_heartbeat = 0;
   uint32_t led_period = 1000; // Start with 1s period (not working yet)
