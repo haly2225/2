@@ -25,6 +25,7 @@ uint8_t  rx_dummy[TX_BYTES] __attribute__((aligned(4)));
 
 volatile uint8_t adc_complete = 0;
 volatile uint8_t spi_busy = 0;
+volatile uint8_t spi_tx_done = 0;
 volatile uint8_t nss_triggered = 0;
 volatile uint32_t adc_count = 0;
 volatile uint32_t spi_count = 0;
@@ -72,9 +73,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
 {
   spi_busy = 0;
+  spi_tx_done = 1;
   spi_count++;
-  // Restart SPI ngay
-  HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
 }
 
 void HAL_SPI_ErrorCallback(SPI_HandleTypeDef *hspi)
@@ -130,7 +130,15 @@ int main(void)
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
 
-    if (adc_complete) {
+    // Restart SPI only when TX done AND new ADC data ready
+    if (spi_tx_done && adc_complete) {
+      spi_tx_done = 0;
+      adc_complete = 0;
+      HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
+      start_adc_capture();
+    }
+    // If only ADC done but SPI still busy, just restart ADC
+    else if (adc_complete) {
       adc_complete = 0;
       start_adc_capture();
     }
