@@ -62,6 +62,7 @@ void start_adc_capture(void)
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
   HAL_ADC_Stop_DMA(&hadc1);
+  // Pack new data (ADC is 39fps, much faster than SPI 17fps, so always fresh data)
   pack_u16_to_bytes(adc_buffer, tx_buffer, BUFFER_SIZE);
   adc_complete = 1;
   adc_count++;
@@ -191,21 +192,14 @@ int main(void)
       HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_13);
     }
 
-    // Update buffer when ADC completes AND SPI is idle
-    if (adc_complete && spi_tx_done) {
-      adc_complete = 0;
-      spi_tx_done = 0;  // Will restart below
-      pack_u16_to_bytes(adc_buffer, tx_buffer, BUFFER_SIZE);  // Safe: SPI idle
-      HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
-      start_adc_capture();  // Restart ADC for next capture
-    }
-    // If SPI done but ADC not ready, restart SPI with old data (keep responding to Pi4)
-    else if (spi_tx_done) {
+    // Restart SPI immediately when done (Pi4 is master, must always respond)
+    if (spi_tx_done) {
       spi_tx_done = 0;
       HAL_SPI_TransmitReceive_DMA(&hspi1, tx_buffer, rx_dummy, TX_BYTES);
     }
-    // If ADC done but SPI still busy, just restart ADC (data will be picked up next cycle)
-    else if (adc_complete) {
+
+    // Restart ADC when conversion complete (data already packed in callback)
+    if (adc_complete) {
       adc_complete = 0;
       start_adc_capture();
     }
