@@ -1,0 +1,13 @@
+CXX = g++
+CXXFLAGS = -Wall -std=c++11
+TARGET = debug_spi
+
+all: $(TARGET)
+
+$(TARGET): debug_spi.cpp
+	$(CXX) $(CXXFLAGS) -o $(TARGET) debug_spi.cpp
+
+clean:
+	rm -f $(TARGET)
+
+.PHONY: all clean
